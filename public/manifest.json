@@ -1,0 +1,11 @@
+{
+  "short_name": "GastroPlus HMS",
+  "name": "NEO GastroPlus Hospital Management System",
+  "description": "Comprehensive Hospital Management System for Clinical, Administrative, and Financial Operations",
+  "start_url": "/",
+  "background_color": "#F8FAFC",
+  "theme_color": "#1A5E63",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "scope": "/"
+}

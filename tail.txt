@@ -1,0 +1,12 @@
+CREATE POLICY "Allow public read for ot_surgery_consent_forms" ON public.ot_surgery_consent_forms FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow public insert for ot_surgery_consent_forms" ON public.ot_surgery_consent_forms;
+CREATE POLICY "Allow public insert for ot_surgery_consent_forms" ON public.ot_surgery_consent_forms FOR INSERT TO authenticated, anon WITH CHECK (coalesce(auth.role(), '') IS NOT NULL);
+DROP POLICY IF EXISTS "Allow public update for ot_surgery_consent_forms" ON public.ot_surgery_consent_forms;
+CREATE POLICY "Allow public update for ot_surgery_consent_forms" ON public.ot_surgery_consent_forms FOR UPDATE TO authenticated, anon USING (coalesce(auth.role(), '') IS NOT NULL) WITH CHECK (coalesce(auth.role(), '') IS NOT NULL);
+DROP POLICY IF EXISTS "Allow public delete for ot_surgery_consent_forms" ON public.ot_surgery_consent_forms;
+CREATE POLICY "Allow public delete for ot_surgery_consent_forms" ON public.ot_surgery_consent_forms FOR DELETE TO authenticated, anon USING (coalesce(auth.role(), '') IS NOT NULL);
+
+-- REFRESH SCHEMA CACHE FOR POSTGREST (SUPER IMPORTANT AFTER EXECUTING ALTER STATEMENTS)
+NOTIFY pgrst, 'reload schema';
+
+

@@ -1,0 +1,10 @@
+{
+  "name": "Remix update Remix finAL testing Gastro Plus Hospital",
+  "description": "Next-Generation Hospital Management System (HMS) for clinical, administrative, and financial operations.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
