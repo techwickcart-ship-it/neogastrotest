@@ -9790,9 +9790,6 @@ export default function IPD() {
                   placeholder="Staff Nurse Priya S." 
                   value={transferData.nurseInCharge} 
                   onChange={(e) => setTransferData({...transferData, nurseInCharge: e.target.value})} 
-                  className="hx��Wmo�6��_q5�Z"��M���FQ;�RCQ$�t��ʔJRyA���������?IG�s�G��4>h�A�^������:�Aj���)5ds쵒`�r�w�V(͓GE��L2��5L��J�F��7-K�y�u&��I΄B�\`2�Oy����u�w
-O��
-�@]K&T�r����*�k�[��`�y6@�4G��1��G��Df�s�wm�lϦD�2A{d��K��s��������^�3�����?��D+�1�(�\�+:�y��F3�%P���VQH�џ19E�n�XX],N�LD��t�ȹ�i�T҅Ra���֟��!�-j��2��g\S.XpR�'�ԕ��0u�M���8�^�*��!�M���x�R�V#�̒�)�;�f�2�t�0��7�L$\����1	x�^��7%�xj���t����,䔠�Z&��'�@d�^gq�̇Z9�����0��V��ƴ�i���W �~�������������:�%��'�]���*7Y_�����b�Ժ+@��|��>~^�7���
-���gNtV"���,�vTZ���(���|y�x�B-)��>�UϪ���gԍ
-���BY	�`L?jq��� w㫉sqAY���Q�[jj�$04t����Aح�Z��;���cre�����z!A�ʑ��@w�y�g�:z�ҙdS���G㳿/o>\��7��a��r5��4e>��"��@��-	�K�]ݭ쾿�m������%�����׶�r�}sԢI�@��s��3:_��b)�b���PW���x��J3]�ۣ(*r�q�%r˰j�7��3��mIW6�pn��T�u9m˻����MRt����M��D�h��x�n��Z�34Y�_=���c��z��#n�3D��KT�n;S�lA��c��R���m�Y��|��"�P)�vu�Ê�i�X�u�{��ƫ�m��oD1��\ܺu|�H�#f�'
-�Lf�8Jw8�LKA�����b֡)�,{Y�
+                  className="h-9 text-xs"
+/>
+</div>
