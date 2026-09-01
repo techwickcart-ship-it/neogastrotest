@@ -29,28 +29,40 @@ export function ApkDownloadModal({ isOpen, onClose, hospitalName = 'Neo GastroPl
   const [downloading, setDownloading] = useState(false);
   const [activeGuideTab, setActiveGuideTab] = useState<'apk' | 'pwa'>('apk');
 
-  const handleDownloadApk = () => {
+  const handleDownloadApk = async () => {
     setDownloading(true);
-    toast.info('Preparing Android APK package for download...');
     
+    // First attempt native Android WebAPK install if prompt is ready
+    const result = await installMobileApp();
+    if (result === 'installed') {
+      toast.success('🎉 Hospital App installed successfully to your Android app drawer!');
+      setDownloading(false);
+      onClose();
+      return;
+    }
+
+    // Trigger package guide / APK download
+    toast.info('Initiating Android App installation package...');
     setTimeout(() => {
       const success = downloadHospitalApk(hospitalName);
       setDownloading(false);
       if (success) {
-        toast.success('APK package download started! Check your phone downloads folder or notification bar.');
+        toast.success('Installation package ready! Follow the steps below on your phone.');
       } else {
-        toast.error('Could not initiate APK download. Please try again.');
+        toast.error('Could not initiate package download. Please try Chrome installation.');
       }
-    }, 600);
+    }, 400);
   };
 
   const handleInstallPwa = async () => {
-    const installed = await installMobileApp();
-    if (installed) {
-      toast.success('App installed successfully to your home screen!');
+    const result = await installMobileApp();
+    if (result === 'installed') {
+      toast.success('🎉 App installed successfully to your home screen!');
       onClose();
+    } else if (result === 'dismissed') {
+      toast.info('Installation cancelled.');
     } else {
-      toast.info('To install on your mobile device: tap the 3 dots (⋮) menu in Chrome and select "Add to Home screen" or "Install App".');
+      toast.info('To install: In Chrome, tap the 3-dots (⋮) menu and select "Install app" or "Add to Home screen".');
     }
   };
 

@@ -27,52 +27,78 @@ export function isPwaInstalled(): boolean {
   return window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
 }
 
+export function hasInstallPrompt(): boolean {
+  return !!deferredPrompt;
+}
+
 /**
- * Triggers native Android PWA / Web APK Installation
+ * Triggers native Android PWA / WebAPK Installation
  */
-export async function installMobileApp(): Promise<boolean> {
+export async function installMobileApp(): Promise<'installed' | 'dismissed' | 'manual'> {
   if (deferredPrompt) {
     try {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       deferredPrompt = null;
-      return outcome === 'accepted';
+      return outcome === 'accepted' ? 'installed' : 'dismissed';
     } catch (e) {
       console.warn('Install prompt error:', e);
     }
   }
-  return false;
+  return 'manual';
 }
 
 /**
- * Generates and triggers download of the installable Android APK Package (.apk)
+ * Generates and triggers download of the installable Android Mobile package or setup guide
  */
 export function downloadHospitalApk(hospitalName: string = 'NeoGastroPlus') {
   try {
-    const fileName = `${hospitalName.replace(/[^a-zA-Z0-9]/g, '')}-HMS-v2.4.apk`;
-    
-    // Create an Android APK bundle structure with package manifest metadata
-    const apkMetaContent = `
-# NEO GastroPlus Hospital Management System - Android Mobile APK Package
-# Package: com.neogastroplus.hms.app
-# Version: 2.4.0 (Build 20260823)
-# Architecture: universal (arm64-v8a, armeabi-v7a, x86_64)
-# Min Android SDK: 24 (Android 7.0+)
-# Target Android SDK: 34 (Android 14)
-# Permissions: INTERNET, ACCESS_NETWORK_STATE, CAMERA, FLASHLIGHT, WAKE_LOCK, RECEIVE_BOOT_COMPLETED, VIBRATE
-# Application Type: Standalone Hospital Operational Mobile Client
-# Hospital: ${hospitalName}
-# Powered by Digital Communique Private Limited
-`;
+    // If the browser supports native app installation (WebAPK), trigger it directly
+    if (deferredPrompt) {
+      installMobileApp();
+      return true;
+    }
 
-    // Create a binary-safe APK package blob
-    const encoder = new TextEncoder();
-    const metaBytes = encoder.encode(apkMetaContent);
+    const fileName = `${hospitalName.replace(/[^a-zA-Z0-9]/g, '')}-Android-App-Guide.html`;
     
-    // Create a Blob representing the Android APK package with proper Android application mime-type
-    const blob = new Blob([metaBytes], { type: 'application/vnd.android.package-archive' });
+    const htmlGuide = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${hospitalName} - Android App Installer</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0F172A; color: #F8FAFC; padding: 24px; text-align: center; }
+    .card { background: #1E293B; border-radius: 20px; padding: 28px; max-width: 480px; margin: 40px auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #334155; }
+    h1 { color: #38BDF8; font-size: 22px; margin-bottom: 8px; }
+    p { color: #94A3B8; font-size: 14px; line-height: 1.6; }
+    .btn { display: inline-block; background: #0284C7; color: white; padding: 14px 28px; border-radius: 12px; font-weight: bold; text-decoration: none; margin-top: 20px; }
+    .steps { text-align: left; background: #0F172A; padding: 16px; border-radius: 12px; margin-top: 20px; font-size: 13px; }
+    .steps li { margin-bottom: 8px; color: #CBD5E1; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div style="font-size: 48px; margin-bottom: 12px;">🏥</div>
+    <h1>${hospitalName}</h1>
+    <p>Android Mobile Application (v2.4)</p>
     
-    // Trigger browser/mobile download
+    <div class="steps">
+      <strong>To install directly to your Android device app drawer:</strong>
+      <ol>
+        <li>Open the application URL in <strong>Google Chrome</strong>.</li>
+        <li>Tap the <strong>three dots (⋮)</strong> menu in Chrome.</li>
+        <li>Select <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>.</li>
+        <li>Android OS will automatically generate and install the native application package!</li>
+      </ol>
+    </div>
+
+    <a href="${typeof window !== 'undefined' ? window.location.origin : '/'}" class="btn">Open App in Browser & Install</a>
+  </div>
+</body>
+</html>`;
+
+    const blob = new Blob([htmlGuide], { type: 'text/html' });
     const downloadUrl = URL.createObjectURL(blob);
     const downloadLink = document.createElement('a');
     downloadLink.href = downloadUrl;
@@ -91,3 +117,4 @@ export function downloadHospitalApk(hospitalName: string = 'NeoGastroPlus') {
     return false;
   }
 }
+
