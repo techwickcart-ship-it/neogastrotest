@@ -1,6 +1,7 @@
 import React, { useState, ChangeEvent, useEffect, useRef } from 'react';
 import RateListExcelUploader from './RateListExcelUploader';
 import HospitalTariffManager from './HospitalTariffManager';
+import { getStaffPhotoUrl } from '../utils/staffPhotos';
 import { 
   Building2, 
   MapPin, 
@@ -1136,7 +1137,7 @@ export default function Settings({ currentUser, onUserUpdate, onHospitalUpdate }
         regNo: newUser.registrationNo || '',
         labLicenseNo: ['PATHOLOGY', 'RADIOLOGY', 'LAB_STAFF', 'PHARMACIST', 'PHARMACY'].includes(newUser.role) ? (newUser.labLicenseNo || '') : '',
         licenseNumber: ['PATHOLOGY', 'RADIOLOGY', 'LAB_STAFF', 'PHARMACIST', 'PHARMACY'].includes(newUser.role) ? (newUser.labLicenseNo || '') : '',
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${newUser.name}`
+        avatar: getStaffPhotoUrl({ name: newUser.name, role: newUser.role, department: newUser.department })
       };
       if (newUser.password) {
         updates.password = newUser.password;
@@ -1178,7 +1179,7 @@ export default function Settings({ currentUser, onUserUpdate, onHospitalUpdate }
         regNo: newUser.registrationNo || '',
         labLicenseNo: ['PATHOLOGY', 'RADIOLOGY', 'LAB_STAFF', 'PHARMACIST', 'PHARMACY'].includes(newUser.role) ? (newUser.labLicenseNo || '') : '',
         licenseNumber: ['PATHOLOGY', 'RADIOLOGY', 'LAB_STAFF', 'PHARMACIST', 'PHARMACY'].includes(newUser.role) ? (newUser.labLicenseNo || '') : '',
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${newUser.name}`
+        avatar: getStaffPhotoUrl({ name: newUser.name, role: newUser.role, department: newUser.department })
       };
       
       const result = await supabaseService.createStaff(staffToAdd);

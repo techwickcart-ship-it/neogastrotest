@@ -233,6 +233,57 @@ export default function Billing() {
         });
       }
 
+      // Synthesize direct endoscopy procedures invoices into master billing ledger
+      const directEndoProceduresList = storage.get(STORAGE_KEYS.ENDOSCOPY_DIRECT_PROCEDURES, []);
+      if (directEndoProceduresList && Array.isArray(directEndoProceduresList) && directEndoProceduresList.length > 0) {
+        directEndoProceduresList.forEach((proc: any) => {
+          if (!proc) return;
+          const procInvId = proc.invoiceId || `INV-ENDO-${proc.id}`;
+          const hasInv = enrichedInvoices.some((inv: any) => {
+            const invId = String(inv.id || '');
+            const invNum = String(inv.invoice_number || inv.invoiceNumber || '');
+            return invId === procInvId || invNum === procInvId || (invNum && invNum.includes(proc.id));
+          });
+
+          if (!hasInv) {
+            const netAmt = Number(proc.netTotalAmount || proc.packageFee || 4500);
+            const discAmt = Number(proc.discountAmount || 0);
+            const baseFee = Number(proc.packageFee || netAmt);
+            const sedFee = Number(proc.sedationFee || 0);
+            const kitFee = Number(proc.kitFee || 0);
+            const totalAmt = baseFee + sedFee + kitFee > 0 ? (baseFee + sedFee + kitFee) : (netAmt + discAmt);
+
+            const endoInv = {
+              id: procInvId,
+              invoice_number: procInvId,
+              patient_id: proc.patientId || proc.id,
+              status: 'Paid',
+              payment_status: 'Paid',
+              total_amount: totalAmt,
+              discount_amount: discAmt,
+              payable_amount: netAmt,
+              paid_amount: netAmt,
+              payment_method: proc.paymentMode || 'Cash',
+              type: 'Endoscopy',
+              created_at: proc.bookingDate || proc.createdAt || new Date().toISOString(),
+              items: [
+                { description: `Direct ${proc.procedureType || 'Endoscopy Procedure'}`, amount: baseFee, category: 'Endoscopy' },
+                ...(sedFee > 0 ? [{ description: `Sedation & Anesthesia (${proc.sedationType || 'Standard'})`, amount: sedFee, category: 'Endoscopy' }] : []),
+                ...(kitFee > 0 ? [{ description: `Disposable Biopsy Kit & Consumables`, amount: kitFee, category: 'Endoscopy' }] : [])
+              ],
+              patients: {
+                id: proc.patientId || proc.id,
+                name: proc.patientName || 'Endoscopy Patient',
+                mrn: proc.patientId || `ENDO-${proc.id}`,
+                phone: proc.patientPhone || 'N/A',
+                email: 'Direct Endoscopy Suite'
+              }
+            };
+            missingAptInvoices.push(endoInv);
+          }
+        });
+      }
+
       // Deduplicate combined list thoroughly
       const combined = [...enrichedInvoices, ...missingAptInvoices];
       const uniqueBills: any[] = [];
@@ -317,6 +368,7 @@ export default function Billing() {
   const allCategories = useMemo(() => {
     const defaults = [
       { id: 'opd', name: 'OPD Consultation', isDefault: true },
+      { id: 'endoscopy', name: 'Endoscopy & Colonoscopy', isDefault: true },
       { id: 'ipd', name: 'IPD / Ward', isDefault: true },
       { id: 'ot', name: 'Surgery / OT', isDefault: true },
       { id: 'lab', name: 'Pathology / Lab', isDefault: true },
@@ -400,8 +452,14 @@ export default function Billing() {
 
     const deptInfo = getBillDepartmentAndType(bill);
     const deptType = deptInfo.departmentName || bill.type || (bill.items?.[0]?.category) || 'General';
-    const fallbackDeptName = deptType === 'OPD' ? 'OPD Patient' : 
-                             deptType === 'IPD' ? 'IPD Patient' : 
+    const patientRegType = String(matched?.registration_type || matched?.registrationType || '').toLowerCase();
+    const isIpdPatient = patientRegType === 'ipd' || matched?.status === 'Discharged' || matched?.status === 'discharged' || matched?.status === 'Admitted' || matched?.status === 'Admitting' || deptType === 'IPD' || deptType === 'IPD / Ward';
+    const isEndoPatient = matched?.isDirectEndo || deptType === 'Endoscopy' || deptType === 'ENDOSCOPY' || patientRegType === 'endoscopy';
+
+    const fallbackDeptName = isIpdPatient ? (matched?.status === 'Discharged' || matched?.status === 'discharged' ? 'Discharged IPD Patient' : 'IPD Inpatient') :
+                             isEndoPatient ? 'Endoscopy Patient' :
+                             deptType === 'OPD' ? 'OPD Patient' : 
+                             deptType === 'IPD' || deptType === 'IPD / Ward' ? 'IPD Inpatient' : 
                              deptType.includes('Path') || deptType.includes('Lab') ? 'Pathology Patient' :
                              deptType.includes('Radio') ? 'Radiology Patient' :
                              deptType === 'Endoscopy' || deptType === 'ENDOSCOPY' ? 'Endoscopy Patient' : 
@@ -426,7 +484,7 @@ export default function Billing() {
       gender: gender ? String(gender) : '',
       address: address ? String(address) : '',
       isMatched: !!matched,
-      department: matched?.department || deptType
+      department: matched?.department || (isIpdPatient ? (matched?.status === 'Discharged' || matched?.status === 'discharged' ? 'IPD (Discharged)' : 'IPD / Ward') : isEndoPatient ? 'Endoscopy' : deptType)
     };
   };
 
@@ -496,8 +554,31 @@ export default function Billing() {
       services = [
         { name: 'OPD General Consultation', rate: 500 },
         { name: 'Specialist Consultation', rate: 800 },
+        { name: 'Super Specialist / Senior Consultant OPD', rate: 1200 },
+        { name: 'OPD Follow-Up Consultation', rate: 300 },
         { name: 'Emergency Consultation', rate: 1000 },
-        { name: 'Day Care Observation (Hourly)', rate: 300 }
+        { name: 'Day Care Observation (Hourly)', rate: 300 },
+        { name: 'ECG / Clinical Checkup', rate: 400 },
+        { name: 'Nebulization Session', rate: 150 },
+        { name: 'Minor Wound Dressing & Suture Care', rate: 250 },
+        { name: 'IV Cannulation / Injection Administration', rate: 150 },
+        { name: 'Blood Sugar (GRBS) Rapid Test', rate: 100 }
+      ];
+    } else if (catId === 'endoscopy') {
+      services = [
+        { name: 'Upper GI Endoscopy (Diagnostic)', rate: 2500 },
+        { name: 'Upper GI Endoscopy with Biopsy', rate: 3500 },
+        { name: 'Colonoscopy (Full Diagnostic)', rate: 4500 },
+        { name: 'Colonoscopy with Biopsy / Polypectomy', rate: 6000 },
+        { name: 'Endoscopic Variceal Ligation (EVL / Banding)', rate: 8000 },
+        { name: 'Endoscopic Sclerotherapy (EST)', rate: 5000 },
+        { name: 'Endoscopic Hemoclip Application', rate: 6500 },
+        { name: 'Endoscopic Foreign Body Removal', rate: 5500 },
+        { name: 'Flexible Sigmoidoscopy', rate: 2200 },
+        { name: 'ERCP (Diagnostic / Therapeutic)', rate: 15000 },
+        { name: 'Liver Fibroscan / Elastography', rate: 2000 },
+        { name: 'Endoscopy Sedation / Anesthesia Fee', rate: 1500 },
+        { name: 'Disposable Biopsy Forceps & Pack', rate: 800 }
       ];
     } else if (catId === 'pharmacy') {
       const invMeds = (inventory || []).map((item: any) => ({
@@ -1905,7 +1986,11 @@ export default function Billing() {
         );
       
       if (filterCategory === 'opd') {
-        categoryMatch = bType === 'opd' || hasItemCategory('opd');
+        const deptInfo = getBillDepartmentAndType(bill);
+        categoryMatch = bType === 'opd' || deptInfo.prefix === 'OPD' || hasItemCategory('opd');
+      } else if (filterCategory === 'endoscopy') {
+        const deptInfo = getBillDepartmentAndType(bill);
+        categoryMatch = bType === 'endoscopy' || bType === 'endo' || deptInfo.prefix === 'ENDO' || deptInfo.departmentName.toLowerCase().includes('endo') || hasItemCategory('endoscopy') || hasItemCategory('endo');
       } else if (filterCategory === 'ipd') {
         categoryMatch = bType === 'ipd' || hasItemCategory('ipd');
       } else if (filterCategory === 'lab') {
@@ -5027,6 +5112,7 @@ export default function Billing() {
                 <SelectContent>
                   <SelectItem value="all">All Invoices</SelectItem>
                   <SelectItem value="opd">OPD Bills</SelectItem>
+                  <SelectItem value="endoscopy">Endoscopy & Colonoscopy</SelectItem>
                   <SelectItem value="ipd">IPD Bills</SelectItem>
                   <SelectItem value="lab">Lab/Diagnostics</SelectItem>
                   <SelectItem value="radiology">Radiology</SelectItem>
@@ -5190,9 +5276,26 @@ export default function Billing() {
                             </div>
                           </TableCell>
                           <TableCell className="whitespace-nowrap">
-                            <Badge variant="outline" className={`text-[10px] font-semibold border-blue-100 ${bill.isExpense ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-blue-50 text-blue-700'}`}>
-                              {bill.type || 'General'}
-                            </Badge>
+                            {(() => {
+                              const deptInfo = getBillDepartmentAndType(bill);
+                              const deptName = bill.isExpense ? 'Facility Expense' : (deptInfo.departmentName || bill.type || 'General');
+                              const prefix = deptInfo.prefix;
+                              let badgeStyle = 'bg-blue-50 text-blue-700 border-blue-200';
+                              if (bill.isExpense) badgeStyle = 'bg-amber-50 text-amber-700 border-amber-200';
+                              else if (prefix === 'ENDO') badgeStyle = 'bg-purple-50 text-purple-700 border-purple-200';
+                              else if (prefix === 'OPD') badgeStyle = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                              else if (prefix === 'IPD') badgeStyle = 'bg-indigo-50 text-indigo-700 border-indigo-200';
+                              else if (prefix === 'OT') badgeStyle = 'bg-amber-50 text-amber-700 border-amber-200';
+                              else if (prefix === 'LAB') badgeStyle = 'bg-cyan-50 text-cyan-700 border-cyan-200';
+                              else if (prefix === 'RADIO') badgeStyle = 'bg-violet-50 text-violet-700 border-violet-200';
+                              else if (prefix === 'PHARM') badgeStyle = 'bg-rose-50 text-rose-700 border-rose-200';
+
+                              return (
+                                <Badge variant="outline" className={`text-[10px] font-bold ${badgeStyle}`}>
+                                  {deptName}
+                                </Badge>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell className="whitespace-nowrap">
                             <div className="flex flex-col text-[11px]">

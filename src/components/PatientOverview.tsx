@@ -781,7 +781,7 @@ export default function PatientOverview({ userRole }: { userRole?: string }) {
   };
 
   const filteredPatients = useMemo(() => {
-    let result = patients.filter(p => p.status !== 'Discharged' && p.status !== 'discharged');
+    let result = [...patients];
     
     if (isDoctor && assignedPatientIds && assignedPatientIds.size > 0) {
       result = result.filter(p => assignedPatientIds.has(p.id));
@@ -1561,7 +1561,22 @@ View full details at: ${shareUrl}
                   {patient.name.charAt(0)}
                 </div>
                 <div className="flex-1 overflow-hidden">
-                  <p className="font-bold text-slate-800 truncate">{patient.name}</p>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <p className="font-bold text-slate-800 truncate">{patient.name}</p>
+                    {patient.status === 'Discharged' || patient.status === 'discharged' ? (
+                      <Badge variant="outline" className="text-[8.5px] px-1 py-0 h-3.5 font-bold bg-purple-50 text-purple-700 border-purple-200">
+                        IPD (Discharged)
+                      </Badge>
+                    ) : patient.status === 'Admitted' || patient.status === 'Admitting' ? (
+                      <Badge variant="outline" className="text-[8.5px] px-1 py-0 h-3.5 font-bold bg-amber-50 text-amber-700 border-amber-200">
+                        IPD (Inpatient)
+                      </Badge>
+                    ) : (patient.department?.includes('Endoscopy') || patient.isDirectEndo) ? (
+                      <Badge variant="outline" className="text-[8.5px] px-1 py-0 h-3.5 font-bold bg-purple-50 text-purple-700 border-purple-200">
+                        Endoscopy
+                      </Badge>
+                    ) : null}
+                  </div>
                   <div className="flex items-center gap-2 mt-0.5">
                     <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 font-bold bg-slate-100 text-slate-500 border-none">
                       {patient.mrn || 'N/A'}

@@ -126,6 +126,7 @@ export function getBillDepartmentAndType(bill: any): { prefix: string; billingTy
   let labCount = 0;
   let radioCount = 0;
   let otCount = 0;
+  let endoCount = 0;
   let ipdCount = 0;
   let opdCount = 0;
   let pharmCount = 0;
@@ -133,9 +134,10 @@ export function getBillDepartmentAndType(bill: any): { prefix: string; billingTy
 
   const labKeywords = ['lipase', 'amylase', 'thyroid', 'tsh', 't3', 't4', 'lft', 'kft', 'rft', 'cbc', 'blood', 'urine', 'stool', 'lipid', 'profile', 'electrolytes', 'glucose', 'sugar', 'hba1c', 'creatinine', 'urea', 'bilirubin', 'sgot', 'sgpt', 'culture', 'widal', 'crp', 'esr', 'platelet', 'hemoglobin', 'biopsy', 'serum', 'pathology', 'lab', 'laboratory'];
   const radioKeywords = ['x-ray', 'xray', 'usg', 'ultrasound', 'ct scan', 'ct-scan', 'mri', 'doppler', 'echocardiography', 'echo', 'radiology', 'radio', 'radiograph'];
-  const otKeywords = ['ot', 'surgery', 'surgeon', 'theatre', 'laparoscopy', 'endoscopy', 'colonoscopy', 'appendectomy', 'cholecystectomy', 'operative', 'procedure'];
+  const endoKeywords = ['endoscopy', 'colonoscopy', 'gastroscopy', 'sigmoidoscopy', 'ercp', 'evl', 'banding', 'polypectomy', 'biopsy forceps', 'clip', 'sclerotherapy', 'fibroscan', 'endo'];
+  const otKeywords = ['ot', 'surgery', 'surgeon', 'theatre', 'laparoscopy', 'appendectomy', 'cholecystectomy', 'operative', 'procedure', 'hernia', 'caesar', 'cesarean'];
   const ipdKeywords = ['ipd', 'ward', 'bed', 'icu', 'nursing', 'inpatient', 'admission', 'deluxe', 'general ward', 'private room'];
-  const opdKeywords = ['opd', 'consultation', 'consult', 'doctor fee', 'registration', 'fibroscan', 'review', 'clinic'];
+  const opdKeywords = ['opd', 'consultation', 'consult', 'doctor fee', 'registration', 'review', 'clinic', 'outpatient', 'general medicine'];
   const pharmKeywords = ['pharmacy', 'pharm', 'tablet', 'capsule', 'syrup', 'injection', 'strip', 'ointment', 'suspension', 'drops', 'paracetamol', 'amoxicillin', 'pantoprazole', 'cefixime', 'azithromycin', 'omeprazole', 'metformin'];
 
   if (Array.isArray(items) && items.length > 0) {
@@ -145,12 +147,14 @@ export function getBillDepartmentAndType(bill: any): { prefix: string; billingTy
 
       const isLab = cat === 'lab' || cat === 'pathology' || cat === 'path' || cat === 'laboratory' || labKeywords.some(k => name.includes(k));
       const isRadio = cat === 'radio' || cat === 'radiology' || radioKeywords.some(k => name.includes(k));
-      const isOt = cat === 'ot' || cat === 'surgery' || otKeywords.some(k => name.includes(k));
+      const isEndo = cat === 'endoscopy' || cat === 'endo' || endoKeywords.some(k => name.includes(k));
+      const isOt = !isEndo && (cat === 'ot' || cat === 'surgery' || otKeywords.some(k => name.includes(k)));
       const isIpd = cat === 'ipd' || cat === 'ward' || ipdKeywords.some(k => name.includes(k));
       const isPharm = cat === 'pharmacy' || cat === 'pharm' || cat === 'medicine' || pharmKeywords.some(k => name.includes(k));
       const isOpd = cat === 'opd' || opdKeywords.some(k => name.includes(k));
 
-      if (isLab) labCount++;
+      if (isEndo) endoCount++;
+      else if (isLab) labCount++;
       else if (isRadio) radioCount++;
       else if (isOt) otCount++;
       else if (isIpd) ipdCount++;
@@ -161,6 +165,9 @@ export function getBillDepartmentAndType(bill: any): { prefix: string; billingTy
   }
 
   // Determine prefix and billing type from item content
+  if (endoCount > 0) {
+    return { prefix: 'ENDO', billingType: 'Endoscopy & Colonoscopy Suite', departmentName: 'Endoscopy' };
+  }
   if (labCount > 0 && pharmCount === 0) {
     if (opdCount > 0) {
       return { prefix: 'LAB', billingType: 'Pathology & Diagnostic Services', departmentName: 'Pathology / Lab' };
@@ -180,13 +187,16 @@ export function getBillDepartmentAndType(bill: any): { prefix: string; billingTy
     return { prefix: 'PHARM', billingType: 'Pharmacy / Dispensary', departmentName: 'Pharmacy' };
   }
   if (opdCount > 0 && pharmCount === 0) {
-    return { prefix: 'OPD', billingType: 'OPD Consultation & Services', departmentName: 'OPD' };
+    return { prefix: 'OPD', billingType: 'OPD Consultation & Clinical Services', departmentName: 'OPD' };
   }
 
   // Fallback to explicit type / department fields
   const type = String(bill.type || bill.invoice_type || bill.department || '').toUpperCase();
   const num = String(bill.invoice_number || bill.invoiceNumber || bill.invoice_no || bill.invoiceNo || '').toUpperCase();
 
+  if (type === 'ENDOSCOPY' || type === 'ENDO' || num.startsWith('ENDO') || num.startsWith('INV-ENDO')) {
+    return { prefix: 'ENDO', billingType: 'Endoscopy & Colonoscopy Suite', departmentName: 'Endoscopy' };
+  }
   if (type === 'LAB' || type === 'PATHOLOGY' || type === 'PATH' || num.startsWith('LAB') || num.startsWith('INV-LAB')) {
     return { prefix: 'LAB', billingType: 'Pathology / Laboratory Investigation', departmentName: 'Pathology / Lab' };
   }
@@ -200,7 +210,7 @@ export function getBillDepartmentAndType(bill: any): { prefix: string; billingTy
     return { prefix: 'IPD', billingType: 'IPD / Inpatient Services', departmentName: 'IPD / Ward' };
   }
   if (type === 'OPD' || num.startsWith('OPD') || num.startsWith('INV-OPD')) {
-    return { prefix: 'OPD', billingType: 'OPD Consultation & Services', departmentName: 'OPD' };
+    return { prefix: 'OPD', billingType: 'OPD Consultation & Clinical Services', departmentName: 'OPD' };
   }
   if (type === 'EMERGENCY' || type === 'CASUALTY' || num.startsWith('EMERG') || num.startsWith('INV-EMERG')) {
     return { prefix: 'EMERG', billingType: 'Emergency & Trauma Care', departmentName: 'Emergency' };

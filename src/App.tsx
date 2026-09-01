@@ -196,14 +196,16 @@ const navCategories: NavCategory[] = [
 
 const navItems = navCategories.flatMap(c => c.items);
 
+import { getStaffPhotoUrl } from './utils/staffPhotos';
+
 const ROLE_PROFILES = [
-  { id: 'u-admingh', name: 'Admin GH', email: 'admingh', role: 'SUPER_ADMIN', label: 'Super Admin', department: 'Administration', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=AdminGH' },
-  { id: 'u-doctor', name: 'Dr. Rajesh Sharma', email: 'doctor@hospital.com', role: 'DOCTOR', label: 'Doctor Panel', department: 'General Medicine', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Rajesh' },
-  { id: 'u-frontdesk', name: 'Front Desk Staff', email: 'frontdesk@hospital.com', role: 'RECEPTION', label: 'Receptionist / Front Desk', department: 'Registration', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Front' },
-  { id: 'u-nurse', name: 'Nurse Head', email: 'nurse@hospital.com', role: 'NURSE', label: 'Nursing Station', department: 'Nursing', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Nurse' },
-  { id: 'u-pharmacy', name: 'Chief Pharmacist', email: 'pharmacy@hospital.com', role: 'PHARMACIST', label: 'Pharmacy Panel', department: 'Pharmacy', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Pharmacy' },
-  { id: 'u-lab', name: 'Lab Technician', email: 'lab@hospital.com', role: 'LAB_STAFF', label: 'Lab & Radiology Panel', department: 'Pathology', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lab' },
-  { id: 'u-accounts', name: 'Hospital Accountant', email: 'accounts@hospital.com', role: 'ACCOUNTANT', label: 'Accountant & Billing Panel', department: 'Finance', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Accounts' },
+  { id: 'u-admingh', name: 'Admin GH', email: 'admingh', role: 'SUPER_ADMIN', label: 'Super Admin', department: 'Administration', avatar: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=600' },
+  { id: 'u-doctor', name: 'Dr. Rajesh Sharma', email: 'doctor@hospital.com', role: 'DOCTOR', label: 'Doctor Panel', department: 'General Medicine', avatar: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=600' },
+  { id: 'u-frontdesk', name: 'Front Desk Staff', email: 'frontdesk@hospital.com', role: 'RECEPTION', label: 'Receptionist / Front Desk', department: 'Registration', avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=600' },
+  { id: 'u-nurse', name: 'Nurse Head', email: 'nurse@hospital.com', role: 'NURSE', label: 'Nursing Station', department: 'Nursing', avatar: 'https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?auto=format&fit=crop&q=80&w=600' },
+  { id: 'u-pharmacy', name: 'Chief Pharmacist', email: 'pharmacy@hospital.com', role: 'PHARMACIST', label: 'Pharmacy Panel', department: 'Pharmacy', avatar: 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&q=80&w=600' },
+  { id: 'u-lab', name: 'Lab Technician', email: 'lab@hospital.com', role: 'LAB_STAFF', label: 'Lab & Radiology Panel', department: 'Pathology', avatar: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&q=80&w=600' },
+  { id: 'u-accounts', name: 'Hospital Accountant', email: 'accounts@hospital.com', role: 'ACCOUNTANT', label: 'Accountant & Billing Panel', department: 'Finance', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=600' },
 ];
 
 function ProtectedRoute({ children, allowedRoles, user }: { children: ReactNode, allowedRoles: string[], user: any }) {
@@ -540,7 +542,7 @@ function SidebarContent({
         <div className="bg-white/60 backdrop-blur-md rounded-xl p-3 border border-white/50 shadow-sm">
           <div className="flex items-center gap-2.5 mb-2">
             <Avatar className="w-9 h-9 border-2 border-white shadow-sm shrink-0">
-              <AvatarImage src={user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Anjali"} />
+              <AvatarImage src={getStaffPhotoUrl(user)} />
               <AvatarFallback>{(user?.name || "AG").substring(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>
             <div className="overflow-hidden min-w-0">
@@ -1345,7 +1347,7 @@ function AppLayout({ user, hospitalInfo, handleLogout, isMobileMenuOpen, setIsMo
                 <p className="text-[9px] text-slate-800 uppercase mt-1 font-black tracking-wider">{(user?.role || "SUPER_ADMIN").replace('_', ' ')}</p>
               </div>
               <Avatar className="w-8 h-8 cursor-pointer hover:ring-2 hover:ring-white/50 transition-all">
-                <AvatarImage src={user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Anjali"} />
+                <AvatarImage src={getStaffPhotoUrl(user)} />
                 <AvatarFallback>{(user?.name || "AG").substring(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
             </div>

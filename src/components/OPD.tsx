@@ -6023,6 +6023,10 @@ export default function OPD() {
                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-200 max-w-max">
                                   Transferred to IPD ({patient.status || 'Pending'})
                                 </span>
+                              ) : (patient.status === 'Discharged' || patient.status === 'discharged' || patient.registration_type === 'IPD' || patient.department === 'IPD') ? (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-800 border border-purple-200 max-w-max">
+                                  IPD (Discharged Inpatient)
+                                </span>
                               ) : (patient.isReferral || patient.is_referral) ? (
                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-teal-50 text-teal-700 border border-teal-200 max-w-max">
                                   <ArrowUpRight className="w-2.5 h-2.5 text-teal-500" />

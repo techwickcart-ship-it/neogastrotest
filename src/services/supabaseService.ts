@@ -2,6 +2,7 @@ import { supabase, broadcastDataMutation, isSupabaseConfigured } from '../lib/su
 import { toast } from 'sonner';
 import { storage, STORAGE_KEYS } from '../lib/storage';
 import { DEFAULT_PHARMACY_SETTINGS } from '../lib/pharmacyInvoicePrint';
+import { getStaffPhotoUrl } from '../utils/staffPhotos';
 import { 
   MOCK_PRESCRIPTIONS, 
   MOCK_NURSE_SHIFTS, 
@@ -4107,7 +4108,7 @@ const rawSupabaseService = {
       phone: profile.phone || null,
       degree: encoded.degree || null,
       specialization: profile.specialization || profile.specialty || null,
-      avatar_url: profile.avatar_url || profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(staffName)}`,
+      avatar_url: getStaffPhotoUrl(profile),
       status: profile.status || 'ACTIVE',
       consultation_fee: feeNumber,
       updated_at: new Date().toISOString()
@@ -4130,7 +4131,7 @@ const rawSupabaseService = {
         return list.map((p: any) => {
           const item = {
             ...p,
-            avatar: p.avatar_url || p.avatar
+            avatar: getStaffPhotoUrl(p)
           };
           
           // Decode password

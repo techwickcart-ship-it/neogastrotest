@@ -1,6 +1,7 @@
 import { Patient, Appointment, User, Bed, BillingRecord, LabTest, InventoryItem, OperationTheatre, OperationRecord, NursingTask, NurseShift, PatientVitals, Prescription } from './types';
 import { INITIAL_PATHOLOGY_MASTER_TESTS } from './data/pathologyMasterRates';
 import { INITIAL_RADIOLOGY_MASTER_TESTS } from './data/radiologyMasterRates';
+import { REAL_DOCTOR_PHOTOS } from './utils/staffPhotos';
 
 export const MOCK_USERS: User[] = [
   { 
@@ -18,7 +19,7 @@ export const MOCK_USERS: User[] = [
     regNo: 'MCI-2012-4489',
     consultationFee: 500,
     phone: '+91 9876543210',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Rajesh' 
+    avatar: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=600' 
   },
   { 
     id: 'u2', 
@@ -35,7 +36,7 @@ export const MOCK_USERS: User[] = [
     regNo: 'MCI-2008-1122',
     consultationFee: 0,
     phone: '+91 9876543211',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin' 
+    avatar: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=600' 
   },
   { 
     id: 'u3', 
@@ -52,7 +53,7 @@ export const MOCK_USERS: User[] = [
     regNo: 'MCI-2016-8821',
     consultationFee: 400,
     phone: '+91 9876543212',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Priya' 
+    avatar: 'https://images.unsplash.com/photo-1594824813589-9a740b2d69e4?auto=format&fit=crop&q=80&w=600' 
   },
   { 
     id: 'u4', 
@@ -69,7 +70,7 @@ export const MOCK_USERS: User[] = [
     regNo: 'MCI-2018-9923',
     consultationFee: 450,
     phone: '+91 9876543213',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ananya' 
+    avatar: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=600' 
   },
   { 
     id: 'u5', 
@@ -86,7 +87,7 @@ export const MOCK_USERS: User[] = [
     regNo: 'MCI-2014-1120',
     consultationFee: 600,
     phone: '+91 9876543214',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Vikram' 
+    avatar: 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?auto=format&fit=crop&q=80&w=600' 
   },
   { 
     id: 'u6', 
@@ -103,7 +104,7 @@ export const MOCK_USERS: User[] = [
     regNo: 'MCI-2011-3391',
     consultationFee: 500,
     phone: '+91 9876543215',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sunita' 
+    avatar: 'https://images.unsplash.com/photo-1651008376811-b90baee60c1f?auto=format&fit=crop&q=80&w=600' 
   },
   { 
     id: 'u7', 
@@ -120,7 +121,7 @@ export const MOCK_USERS: User[] = [
     regNo: 'MCI-2010-7744',
     consultationFee: 700,
     phone: '+91 9876543216',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Rameshwar' 
+    avatar: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&q=80&w=600' 
   },
   { 
     id: 'u8', 
@@ -137,7 +138,7 @@ export const MOCK_USERS: User[] = [
     regNo: 'MCI-2015-6655',
     consultationFee: 650,
     phone: '+91 9876543217',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Amit' 
+    avatar: 'https://images.unsplash.com/photo-1622902046580-2b47f47f5471?auto=format&fit=crop&q=80&w=600' 
   },
   { 
     id: 'u9', 
@@ -154,7 +155,7 @@ export const MOCK_USERS: User[] = [
     regNo: 'MCI-2006-2233',
     consultationFee: 800,
     phone: '+91 9876543218',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Arvind' 
+    avatar: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=600' 
   },
   { 
     id: 'u-dr-anirudh', 
@@ -172,7 +173,7 @@ export const MOCK_USERS: User[] = [
     consultationFee: 600,
     followUpFee: 500,
     phone: '+91 9876543230',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Anirudh' 
+    avatar: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=600' 
   },
   { 
     id: 'u-dr-ashay', 
@@ -190,7 +191,7 @@ export const MOCK_USERS: User[] = [
     consultationFee: 500,
     followUpFee: 500,
     phone: '+91 9876543231',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ashay' 
+    avatar: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=600' 
   },
   {
     id: 'u10',
@@ -206,7 +207,7 @@ export const MOCK_USERS: User[] = [
     registrationNo: 'INC-2020-5512',
     regNo: 'INC-2020-5512',
     phone: '+91 9876543219',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=SisterPriya'
+    avatar: 'https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?auto=format&fit=crop&q=80&w=600'
   },
   {
     id: 'u11',
@@ -222,7 +223,7 @@ export const MOCK_USERS: User[] = [
     registrationNo: 'INC-2017-3341',
     regNo: 'INC-2017-3341',
     phone: '+91 9876543220',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NurseSunita'
+    avatar: 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&q=80&w=600'
   },
   {
     id: 'u12',
@@ -240,7 +241,7 @@ export const MOCK_USERS: User[] = [
     labLicenseNo: 'LAB-LIC-2022-9901',
     licenseNumber: 'LAB-LIC-2022-9901',
     phone: '+91 9876543221',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=VikramLab'
+    avatar: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&q=80&w=600'
   },
   {
     id: 'u13',
@@ -256,7 +257,7 @@ export const MOCK_USERS: User[] = [
     registrationNo: 'EMP-REC-001',
     regNo: 'EMP-REC-001',
     phone: '+91 9876543222',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=RahulRec'
+    avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=600'
   }
 ];
 

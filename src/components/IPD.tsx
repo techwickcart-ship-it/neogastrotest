@@ -982,8 +982,8 @@ export default function IPD({ activeRole }: { activeRole?: string }) {
       await supabaseService.dischargePatient(activeAdmission.id, finalDischargeDate);
     }
 
-    await supabaseService.updatePatient(patientId, { status: 'Discharged' });
-    setPatients(patients.map(p => p.id === patientId ? { ...p, status: 'Discharged' } : p));
+    await supabaseService.updatePatient(patientId, { status: 'Discharged', department: 'IPD', registration_type: 'IPD' });
+    setPatients(patients.map(p => p.id === patientId ? { ...p, status: 'Discharged', department: 'IPD', registration_type: 'IPD' } : p));
 
     if (bed) {
       await supabaseService.updateBedStatus(bed.id, 'Available', null);
