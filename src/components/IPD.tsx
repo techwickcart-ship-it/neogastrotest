@@ -3865,7 +3865,7 @@ export default function IPD() {
 
       // Log the transfer
       const shiftingRecord = {
-        id: 'shf-' + Date.now(),
+                    id: "trf-" + Date.now(),
         patientId: transferData.patientId,
         patientName: patientObj?.name || 'Walk-in Inpatient',
         fromBedId: transferData.fromBedId,
@@ -9790,7 +9790,8 @@ export default function IPD() {
                   placeholder="Staff Nurse Priya S." 
                   value={transferData.nurseInCharge} 
                   onChange={(e) => setTransferData({...transferData, nurseInCharge: e.target.value})} 
-                  className="hxœ¬WmoÛ6þÞ_q5ŠZ"¹¶Mã‰“FQ;°RCQ$´t²ÙÊ”JRyAêÿ¾£å‰¢í ?IGÞsïGžÿ4>hÿAµ^€µº§é¤ó»:±Ajè¢”)5dsìµ’`ÊrÿwøV(Í“GE¹ÿL2£ô5L¦¾J™FÿÏ7-KÞy¡u&àŽIÎ„îµ²B§\`2ÑOyô½÷äu w
-O–î
-õ@]K&T‚r”£ð–*ì¼kž[Ÿº`šy6@Î4G¡ñ1´ÛGíDfósŒwmëlÏ¦D¦2A{dŠàKÏs™Ýáœ‚¡Æâì^Ü3»¬´—Ÿ?ºÅD+ô1þ(¸\‚+:ùy†˜F3Æ%P´¸ÒVQH…ÑŸ19EƒnXX],NûLD˜žtËÈ¹Ãi¡TÒ…RaŽ±ÑÖŸ¤ÂŒ¼!-j÷í›2ïg\S.XpR€'à½Ô•°«0u‡M™Ò¹8“^ë*¥ !åMŠ‘Úx†RãV#¹Ì’¨)š;‹f˜2¡t™0£É7èL$\ÄÞÄØ1	x½^œš7%”xjÆÍÅtŒ•¡º,ä” ·Z&þ«'Å@d÷^gqÛÌ‡Z9ÔôØÐ÷0™¯V¦åÆ´ÜiÚ²óW ˆ~þ„£þ‡›«³ëÁåð:ü%„ö'ñ]˜šº*7Y_«êà†îbÚÔº+@»¤|¦²>~^¨7ÂÉÓ–Ö»gNtV"¯óé,ëvTZ¶Ç(ªïÁ|y²xŽB-)ë¼Î>ÎUÏª»«ºgÔ
-úú“BY	â…`L?jq¦™Ó wã«‰sqAY°†QÛ[jj–$04t¸’ü‘AØ­“ZÀ»;Š¶Ècre¼¾™•í—z!A“Ê‘¯Í@wÛyå„g£:z†Ò™dSˆÕ¯Gã³¿/o>\þç—7×ã³aøþr5ìì4e>“·"¦§@¥­-	ÏKø]Ý­ì¾¿¾mœÎûÁÖû%ñû¿Áë×¶ÌrÃ}sÔ¢IË@–s¬é3:_áþb)µb£¤…PWþ«ÃxØòJ3]¥Û£(*rŽqÛ%rË°j¸7Æá3ªômIW6ñ³pnØÁTç‚u9mË»µùìŽñ”MRtí¶Ž¼MŽ¥D§h§îx¤núôZÐ34Y¿_=°ô’c™»zõ#nÜ3D“ÐKTân;S©lA›Öc¾Röõm»Y±ï|¢©"ŠP)ïvuµÃŠiúX½uÌ{ÚÔÆ«§mŠ‘oD1Ÿ \Üºu|æH±#f‡'³Lf˜8Jw8ðLKA‡§³þÃbÖ¡)Ä,{YÒ )@‡ßôï©ÎË¤ˆ²yž¢ÆòÙìzÑÛïöE`ÏÐý5à:öÖ8Ýœ’¬‰ú¤{ÁYšMû™Ðä¶õÆš\þoxHáÅ‹  ÿÿ è¸Kš
+                  xœ¬WÛnÛ8}ÏWLýPÛh$w»Mã,']EíÀJQEÐÒÈf+SZ’Ê­ÿ}‡’/E_Ð]>ÙCÎ™Ûáˆ&L©[`¿5÷Þ€Æ'í=©Ö	X«wa‰Î{¨¢¦€þC¸5'ø3–y¿Ã·\i?{("È¼?`šÊ¥§a:óTÂ4z¾nYö®r­SLr&t¿•æ:á[ŠAÂÃïý.ô/à‡å»B=Tw’	£g(:1Kvß6Ï­O]3Í:6@Æ4G¡‡Ñ´Û§íX¦‹+ŒvmëtÏ¦D¦RA{Šà!K€/2™>à‚‚Æ¢ôQ<2¹¬¼—]=»Í„+ô	þ“sY€+:ùiŽ˜„sÆ%Pµ¸ÒU‘K…C1˜39CƒnXZ	]./L„˜œ÷ÊÊ¹Ëi¡TèBTX`d¼õ¦IŽ0§lÈ3KÚ{óº¤ñãœkâ‚w€ <†Î])»¿*S×qØÔ)íSŠSÙiÝ&T4$Þ$j` MfˆÂµä2K¢Î¥hî,›eJ…Ò%aÆÓoÐ7˜Ê¹ˆ:SÇÔçôû}pzÞ´Pâ©95³	†tÝÕ!¥„(ÚÒ2öZð
+}‘>vºMFÔ.DÍ“|’)òÙúÏ*¸Ì—9ƒÛ@vÿò©ÂÏŸða<x{y7¼Ý¿„Ðþ(¾s«nËMïk÷º¸‘»”6·ÝU¢]V>ÑÅ>;®ØãéE4£Þ¥3–ÈkF¡²nH5£¥Ðia{Œª*ð±`N§Kƒq %ñÎÍ!«kÕÓUÝ3î†9ýú£BY)âµôaBÔ>à\3g@îÖW3ç:â‚²Za£¶WxhÇ02r¸•ü™AàÛÍ“šÀÛ“×6Ï"Je´þ6)º¸_êWù|ßŸVŽ|m¶ úº]UNtlTG×P:•l†>©v‚»ñäòï›û÷7Ÿÿêæúþnr9
+ÞÝL‚Ó†ƒÝ¡¬Êgx+"zT[!8Žð»ú[Ù	|Û:_Ûï¤ïý/_Ú6Ë÷·£VMÒ(
+YÎU°fÎè|Eû‹åÔˆ“BÝù¯Žàa«ë+ÍtnœnÃ0Ï8Fm—É­ÂªáÞ›„WÂ¨Ê·Wº²1ŒŽÂºa‡;PÉœÖ•´­î6æËÆ6MÐ´;:Ê6%–ˆNÓNßè8D½è%"¨´ çhX¿ß=±t¡QbW¯>àqh ‚MzFh] ’vÛI¥²mZùí´²¯ïlÛÍJ}ç#MåaˆJÑ3­ÌmõC«Í8O’g÷cíØ©aGQf(Ì:0T”ñ8ð…¡Ã†YÿaÈ0ëÐ a–=l2@*Ðágû;ºÈD
+5LY‚Ë—±‹öÓ|YØcò`¸®½517!kh>ï]s–¤³A*4¥m½±—ÿ7:äðòä_   ÿÿ 4ÆCR
