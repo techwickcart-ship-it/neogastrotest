@@ -9788,10 +9788,4 @@ export default function IPD() {
                 <Label className="text-xs font-bold text-slate-500 uppercase">Nurse In-Charge</Label>
                 <Input 
                   placeholder="Staff Nurse Priya S." 
-                  value={transferData.nurseInCharge} 
-                  onChange={(e) => setTransferData({...transferData, nurseInCharge: e.target.value})} 
-                  xœ¬WÛnÛ8}ÏWLıPÛh$w»Mã,']EíÀJQEĞÒÈf+SZ’Ê­ÿ}‡’/E_Ğ]>ÙCÎ™Ûáˆ&L©[`¿5÷Ş€Æ'í=©Ö	X«wa‰Î{¨¢¦€şC¸5'ø3–y¿Ã·\i?{("È¼?`šÊ¥§a:óTÂ4z¾nYö®r­SLr&t¿•æ:á[ŠAÂÃïı.ô/à‡å»B=Tw’	£g(:1Kvß6Ï­O]3Í:6@Æ4G¡‡Ñ´Û§íX¦‹+ŒvmëtÏ¦D¦RA{Šà!K€/2™>à‚‚Æ¢ôQ<2¹¬¼—]=»Í„+ô	ş“sY€+:ùi˜„sÆ%Pµ¸ÒU‘K…C1˜39CƒnXZ	]./L„˜œ÷ÊÊ¹Ëi¡TèBTX`d¼õ¦I0§lÈ3KÚ{óº¤ñãœkâ‚w€ <†Î])»¿*S×qØÔ)íSŠSÙiİ&T4$Ş$j` MfˆÂµä2K¢Î¥hî,›eJ…Ò%aÆÓoĞ7˜Ê¹ˆ:SÇÔçôû}pzŞ´Pâ©95³	†tİÕ!¥„(ÚÒ2öZğ
-}‘>vºMFÔ.DÍ“|’)òÙúÏ*¸Ì—9ƒÛ@vÿò©ÂÏŸğa<x{y7¼İ¿„Ğş(¾s«nËMïk÷º¸‘»”6·İU¢]V>ÑÅ>;®ØãéE4£Ş¥3–ÈkF¡²nH5£¥Ğia{Œª*ğ±`N§Kƒq %ñÎÍ!«kÕÓUİ3î†9ıú£BY)âµôaBÔ>à\3g@îÖW3ç:â‚²Za£¶WxhÇ02r¸•ü™AàÛÍ“šÀÛ“×6Ï"Je´ş6)º¸_êWù|ßŸV|m¶ úº]UNtlTG×P:•l†>©v‚»ñäòï›û÷7Ÿÿêæúşnr9
-ŞİL‚Ó†ƒİ¡¬Êgx+"zT[!8ğ»ú[Ù	|Û:_Ûï¤ïı/_Ú6Ë÷·£VMÒ(
-YÎU°fÎè|Eû‹åÔˆ“Bİù¯àa«ë+ÍtnœnÃ0Ï8Fm—É­ÂªáŞ›„WÂ¨Ê·Wº²1ŒÂºa‡;PÉœÖ•´­î6æËÆ6MĞ´;:Ê6%–ˆNÓNßè8D½è%"¨´ çhX¿ß=±t¡QbW¯>àqh ‚MzFh] ’vÛI¥²mZùí´²¯ïlÛÍJ}ç#MåaˆJÑ3­ÌmõC«Í8O’g÷cíØ©aGQf(Ì:0T”ñ8ğ…¡Ã†YÿaÈ0ëĞ a–=l2@*Ğágû;ºÈD
-5LY‚Ë—±‹öÓ|YØcò`¸®½517!kh>ï]s–¤³A*4¥m½±—ÿ7:äğòä_   ÿÿ 4ÆCR
+                
