@@ -269,6 +269,10 @@ export const MOCK_BEDS: Bed[] = [
   { id: 'b4', number: 'M1', ward: 'Maternity', type: 'Maternity', status: 'Available' },
 ];
 
+export const INITIAL_BEDS: Bed[] = MOCK_BEDS;
+
+export const INITIAL_ADMISSIONS: any[] = [];
+
 export const MOCK_APPOINTMENTS: Appointment[] = [];
 
 export const MOCK_BILLING: any[] = [];

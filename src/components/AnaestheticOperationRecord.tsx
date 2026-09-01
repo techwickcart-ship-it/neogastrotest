@@ -346,11 +346,14 @@ const DEFAULT_AOR_RECORD: AnaestheticOpRecordData = {
 };
 
 interface AnaestheticOperationRecordProps {
+  isOpen?: boolean;
+  onClose?: () => void;
   patientData?: any;
   onSave?: (data: AnaestheticOpRecordData) => void;
 }
 
-export default function AnaestheticOperationRecord({ patientData, onSave }: AnaestheticOperationRecordProps) {
+export default function AnaestheticOperationRecord({ isOpen, onClose, patientData, onSave }: AnaestheticOperationRecordProps) {
+  if (isOpen === false) return null;
   const [record, setRecord] = useState<AnaestheticOpRecordData>(() => {
     const savedHosp = storage.get(STORAGE_KEYS.HOSPITAL_INFO, null);
     const hospName = savedHosp?.name || 'GASTRO PLUS HOSPITAL';
