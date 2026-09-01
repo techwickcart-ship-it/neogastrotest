@@ -47,10 +47,12 @@ export const printDailyVitalsAndAdvice = (
 ) => {
   if (!patient) return;
 
-  const hospitalName = localStorage.getItem('hospital_name') || 'LIFELINE MULTISPECIALTY HOSPITAL';
-  const hospitalSub = 'DEPARTMENT OF INPATIENT CARE & CLINICAL MONITORING';
-  const hospitalAddress = localStorage.getItem('hospital_address') || 'Main Healthcare Blvd, Sector 4, Medical Enclave';
-  const hospitalPhone = localStorage.getItem('hospital_phone') || 'Ph: +91 98765 43210 / Emergency: 108';
+  // Retrieve dynamic hospital settings from application storage
+  const rawHospitalInfo: any = storage.get(STORAGE_KEYS.HOSPITAL_INFO, null);
+  const hospitalName = rawHospitalInfo?.name || rawHospitalInfo?.hospital_name || localStorage.getItem('hospital_name') || 'NEO GASTROPLUS HOSPITAL & RESEARCH INSTITUTE';
+  const hospitalSub = rawHospitalInfo?.tagline || rawHospitalInfo?.department || 'DEPARTMENT OF INPATIENT CARE & CLINICAL MONITORING';
+  const hospitalAddress = rawHospitalInfo?.address || rawHospitalInfo?.hospital_address || localStorage.getItem('hospital_address') || 'Main Healthcare Blvd, Medical Enclave';
+  const hospitalPhone = rawHospitalInfo?.phone ? `Ph: ${rawHospitalInfo.phone}${rawHospitalInfo?.email ? ` • Email: ${rawHospitalInfo.email}` : ''}` : (localStorage.getItem('hospital_phone') || 'Ph: +91 98765 43210 / Emergency: 108');
 
   // Read all vitals for this patient
   const allVitals: DailyVitalEntry[] = storage.get(STORAGE_KEYS.PATIENT_VITALS, []);
@@ -272,7 +274,7 @@ export const printDailyVitalsAndAdvice = (
         <div class="footer-sig">
           <div>
             <div style="font-size: 9px; color: #64748b; font-weight: 700;">Printed on: ${new Date().toLocaleString('en-IN')}</div>
-            <div style="font-size: 8.5px; color: #94a3b8; font-style: italic;">Computer generated clinical progress statement • Lifeline HMS</div>
+            <div style="font-size: 8.5px; color: #94a3b8; font-style: italic;">Computer generated clinical progress statement • ${hospitalName}</div>
           </div>
           <div class="sig-box">
             Staff Nurse Signature

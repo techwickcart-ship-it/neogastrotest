@@ -5868,6 +5868,28 @@ const rawSupabaseService = {
     }
   },
 
+  updateAdmission: async (id: string, updates: any) => {
+    try {
+      const dbAdmission = cleanAdmissionForPostgres(updates);
+      const { data, error } = await supabase
+        .from('admissions')
+        .update(dbAdmission)
+        .eq('id', id)
+        .select();
+      if (error) throw error;
+      const list = storage.get('hms_admissions', []);
+      const updated = list.map((item: any) => item.id === id ? { ...item, ...updates } : item);
+      storage.set('hms_admissions', updated);
+      return data?.[0] || { id, ...updates };
+    } catch (error: any) {
+      console.warn('Handling local fallback for update admission:', error.message);
+      const list = storage.get('hms_admissions', []);
+      const updated = list.map((item: any) => item.id === id ? { ...item, ...updates } : item);
+      storage.set('hms_admissions', updated);
+      return updated.find((item: any) => item.id === id) || { id, ...updates };
+    }
+  },
+
   dischargePatient: async (admissionId: string, dischargeDate: string) => {
     try {
       const { data, error } = await supabase

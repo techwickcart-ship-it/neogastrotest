@@ -1140,11 +1140,11 @@ export default function IPD({ activeRole }: { activeRole?: string }) {
 
   const handleTransfer = async () => {
     if (!transferData.toBedId) {
-      toast.error('Please select a target bed');
+      toast.error('Please select a destination bed');
       return;
     }
 
-    const patientObj = patients.find(p => p.id === transferData.patientId) || MOCK_PATIENTS.find(p => p.id === transferData.patientId);
+    const patientObj = patients.find(p => String(p.id) === String(transferData.patientId)) || MOCK_PATIENTS.find(p => String(p.id) === String(transferData.patientId));
     const fromBedObj = beds.find(b => b.id === transferData.fromBedId);
     const toBedObj = beds.find(b => b.id === transferData.toBedId);
 
@@ -1156,37 +1156,141 @@ export default function IPD({ activeRole }: { activeRole?: string }) {
     const successFrom = await supabaseService.updateBedStatus(transferData.fromBedId, 'Available', null);
     const successTo = await supabaseService.updateBedStatus(transferData.toBedId, 'Occupied', transferData.patientId);
 
-    if (successFrom && successTo) {
-      const shiftingRecord = {
-        id: 'trf-' + Date.now(),
-        patientId: transferData.patientId,
-        patientName: patientObj?.name || 'Inpatient',
-        fromBedId: transferData.fromBedId,
-        fromBedNumber: fromBedObj?.bed_number || fromBedObj?.number || 'N/A',
-        fromWard: fromBedObj?.ward || 'N/A',
-        toBedId: transferData.toBedId,
-        toBedNumber: toBedObj?.bed_number || toBedObj?.number || 'N/A',
-        toWard: toBedObj?.ward || 'N/A',
-        reason: transferData.reason,
-        transferDate: new Date().toISOString(),
-        transferredBy: transferData.transferredBy || 'Dr. Ramesh Mehta',
-        clinicalRequirements: transferData.clinicalRequirements,
-        nurseInCharge: transferData.nurseInCharge || 'Staff Nurse Priya S.'
+    const shiftingRecord = {
+      id: 'trf-' + Date.now(),
+      patientId: transferData.patientId,
+      patientName: patientObj?.name || 'Inpatient',
+      fromBedId: transferData.fromBedId,
+      fromBedNumber: fromBedObj?.bed_number || fromBedObj?.number || 'N/A',
+      fromWard: fromBedObj?.ward || 'N/A',
+      toBedId: transferData.toBedId,
+      toBedNumber: toBedObj?.bed_number || toBedObj?.number || 'N/A',
+      toWard: toBedObj?.ward || 'N/A',
+      reason: transferData.reason || 'Clinical Step-Down / Transfer',
+      transferDate: new Date().toISOString(),
+      transferredBy: transferData.transferredBy || 'Dr. Ramesh Mehta',
+      clinicalRequirements: transferData.clinicalRequirements || 'Standard ward care',
+      nurseInCharge: transferData.nurseInCharge || 'Staff Nurse On-Duty'
+    };
+
+    const updatedTransfers = [shiftingRecord, ...bedTransfers];
+    setBedTransfers(updatedTransfers);
+    storage.set(STORAGE_KEYS.BED_TRANSFERS, updatedTransfers);
+
+    setBeds(prev => prev.map(b => {
+      if (b.id === transferData.fromBedId) {
+        return { ...(successFrom || b), status: 'Available', patient_id: null, patientId: null };
+      }
+      if (b.id === transferData.toBedId) {
+        return { ...(successTo || b), status: 'Occupied', patient_id: transferData.patientId, patientId: transferData.patientId };
+      }
+      return b;
+    }));
+
+    const activeAdm = admissions.find(a => (String(a.patient_id) === String(transferData.patientId) || String(a.patientId) === String(transferData.patientId)) && a.status === 'Admitted');
+    if (activeAdm) {
+      const updatedAdm = {
+        ...activeAdm,
+        bed_id: transferData.toBedId,
+        bedId: transferData.toBedId,
+        bed_number: toBedObj.bed_number || toBedObj.number,
+        ward: toBedObj.ward
       };
-
-      const updatedTransfers = [shiftingRecord, ...bedTransfers];
-      setBedTransfers(updatedTransfers);
-      storage.set(STORAGE_KEYS.BED_TRANSFERS, updatedTransfers);
-
-      setBeds(beds.map(b => {
-        if (b.id === transferData.fromBedId) return successFrom;
-        if (b.id === transferData.toBedId) return successTo;
-        return b;
-      }));
-
-      setIsTransferOpen(false);
-      toast.success('Patient transferred successfully');
+      setAdmissions(prev => prev.map(a => a.id === activeAdm.id ? updatedAdm : a));
+      supabaseService.updateAdmission(activeAdm.id, { bed_id: transferData.toBedId, ward: toBedObj.ward }).catch(() => {});
     }
+
+    setIsTransferOpen(false);
+    toast.success(`Patient ${patientObj?.name || ''} successfully transferred to Bed ${toBedObj.bed_number || toBedObj.number} (${toBedObj.ward})`);
+  };
+
+  const handleExecuteQuickDischarge = async (andGenerateSummary: boolean = true) => {
+    if (!quickDischargeBed) {
+      toast.error('No bed selected for discharge');
+      return;
+    }
+
+    const bedPatId = quickDischargeBed.patient_id || quickDischargeBed.patientId;
+    const patient = bedPatId 
+      ? (patients.find(p => String(p.id) === String(bedPatId)) || MOCK_PATIENTS.find(p => String(p.id) === String(bedPatId)))
+      : null;
+
+    if (!patient) {
+      await supabaseService.updateBedStatus(quickDischargeBed.id, 'Available', null);
+      setBeds(prev => prev.map(b => b.id === quickDischargeBed.id ? { ...b, status: 'Available', patient_id: null, patientId: null } : b));
+      setIsQuickDischargeOpen(false);
+      toast.success(`Bed ${quickDischargeBed.bed_number || quickDischargeBed.number} marked as Available`);
+      return;
+    }
+
+    const activeAdmission = admissions.find(
+      a => (String(a.patient_id) === String(patient.id) || String(a.patientId) === String(patient.id)) && a.status === 'Admitted'
+    );
+    const admissionId = activeAdmission ? activeAdmission.id : 'adm-' + Date.now();
+    const finalDischargeDate = quickDischargeForm.dischargeDate 
+      ? new Date(`${quickDischargeForm.dischargeDate}T${quickDischargeForm.dischargeTime || '12:00'}:00`).toISOString() 
+      : new Date().toISOString();
+
+    if (activeAdmission) {
+      await supabaseService.dischargePatient(activeAdmission.id, finalDischargeDate);
+      setAdmissions(prev => prev.map(a => a.id === activeAdmission.id ? { ...a, status: 'Discharged', discharge_date: finalDischargeDate } : a));
+    }
+
+    await supabaseService.updatePatient(patient.id, { status: 'Discharged', department: 'IPD', registration_type: 'IPD' });
+    setPatients(prev => prev.map(p => String(p.id) === String(patient.id) ? { ...p, status: 'Discharged' } : p));
+
+    await supabaseService.updateBedStatus(quickDischargeBed.id, 'Available', null);
+    setBeds(prev => prev.map(b => b.id === quickDischargeBed.id ? { ...b, status: 'Available', patient_id: null, patientId: null } : b));
+
+    const summaryData: any = {
+      id: 'sum-' + Date.now(),
+      admissionId: admissionId,
+      patientId: patient.id,
+      patientName: patient.name,
+      mrn: patient.mrn,
+      age: patient.age,
+      gender: patient.gender,
+      ward: quickDischargeBed.ward,
+      bedNumber: quickDischargeBed.bed_number || quickDischargeBed.number,
+      admissionDate: activeAdmission?.admission_date || activeAdmission?.admissionDate || new Date().toISOString(),
+      dischargeType: quickDischargeForm.dischargeType,
+      followUpDate: quickDischargeForm.followUpDate,
+      dischargeDate: finalDischargeDate,
+      dischargeBy: quickDischargeForm.dischargeBy || 'Dr. Rajesh Sharma',
+      primaryDiagnosis: activeAdmission?.diagnosis || 'Post-Treatment Recovery',
+      secondaryDiagnosis: '',
+      operativeProcedure: 'Medical Management / Conservative Care',
+      conditionAtDischarge: quickDischargeForm.conditionAtDischarge,
+      dietaryAdvice: quickDischargeForm.dietaryAdvice,
+      emergencyWarningSigns: quickDischargeForm.emergencyWarningSigns,
+      clinicalSummary: quickDischargeForm.notes || 'Patient evaluated and found clinically stable for planned discharge.',
+      medications: []
+    };
+
+    const savedSummary = await supabaseService.createDischargeSummary(summaryData);
+    const effectiveSummary = savedSummary || summaryData;
+    setDischargeSummaries(prev => [effectiveSummary, ...prev.filter(s => s.id !== effectiveSummary.id)]);
+
+    setIsQuickDischargeOpen(false);
+    toast.success(`Patient ${patient.name} discharged successfully and Bed ${quickDischargeBed.bed_number || quickDischargeBed.number} freed.`);
+
+    if (andGenerateSummary) {
+      setDischargedSummaryToShow(effectiveSummary);
+      setIsSummaryDetailsOpen(true);
+    }
+  };
+
+  const handleDeleteBed = async (bedId: string) => {
+    const targetBed = beds.find(b => b.id === bedId);
+    if (!targetBed) return;
+    if (targetBed.status === 'Occupied') {
+      toast.error('Cannot delete an occupied bed. Please discharge or transfer the patient first.');
+      return;
+    }
+    await supabaseService.deleteBed(bedId);
+    setBeds(prev => prev.filter(b => b.id !== bedId));
+    setIsEditBedOpen(false);
+    toast.success(`Bed ${targetBed.bed_number || targetBed.number} deleted successfully`);
   };
 
   const pendingAdmissions = useMemo(() => {
@@ -1476,7 +1580,7 @@ export default function IPD({ activeRole }: { activeRole?: string }) {
             {displayBeds.filter(bed => {
               if (!searchQuery) return true;
               const bedPatId = bed.patient_id || bed.patientId;
-              const patient = bedPatId ? patients.find(p => String(p.id) === String(bedPatId)) : null;
+              const patient = bedPatId ? (patients.find(p => String(p.id) === String(bedPatId)) || MOCK_PATIENTS.find(p => String(p.id) === String(bedPatId))) : null;
               const query = searchQuery.toLowerCase();
               return (bed.bed_number || bed.number || '').toLowerCase().includes(query) ||
                      (bed.ward || '').toLowerCase().includes(query) ||
@@ -1484,8 +1588,8 @@ export default function IPD({ activeRole }: { activeRole?: string }) {
                      (patient?.mrn || '').toLowerCase().includes(query);
             }).map((bed) => {
               const bedPatId = bed.patient_id || bed.patientId;
-              const patient = bedPatId ? patients.find(p => String(p.id) === String(bedPatId)) : null;
-              const isOccupied = bed.status === 'Occupied' && patient;
+              const patient = bedPatId ? (patients.find(p => String(p.id) === String(bedPatId)) || MOCK_PATIENTS.find(p => String(p.id) === String(bedPatId))) : null;
+              const isOccupied = bed.status === 'Occupied';
 
               return (
                 <Card key={bed.id} className={`border border-slate-200 shadow-xs hover:border-indigo-200 transition-all ${isOccupied ? 'bg-white' : 'bg-slate-50/50'}`}>
@@ -1502,10 +1606,20 @@ export default function IPD({ activeRole }: { activeRole?: string }) {
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              className="h-7 w-7 text-amber-600 hover:bg-amber-50"
+                              className="h-7 w-7 text-amber-600 hover:bg-amber-100 hover:text-amber-800 rounded-lg transition-colors"
                               title="Transfer Bed"
                               onClick={() => {
-                                setTransferData({ patientId: patient.id, fromBedId: bed.id, toBedId: '', reason: 'Clinical step-down', transferredBy: '', clinicalRequirements: 'Wheelchair assist', nurseInCharge: '' });
+                                const patId = patient?.id || bedPatId || '';
+                                const activeAdm = admissions.find(a => (String(a.patient_id) === String(patId) || String(a.patientId) === String(patId)) && a.status === 'Admitted');
+                                setTransferData({ 
+                                  patientId: patId, 
+                                  fromBedId: bed.id, 
+                                  toBedId: '', 
+                                  reason: 'Clinical step-down to ward', 
+                                  transferredBy: activeAdm?.attending_doctor || activeAdm?.doctor_name || 'Dr. Ramesh Mehta', 
+                                  clinicalRequirements: 'Wheelchair assist / Standard care', 
+                                  nurseInCharge: 'Staff Nurse Priya S.' 
+                                });
                                 setIsTransferOpen(true);
                               }}
                             >
@@ -1514,10 +1628,25 @@ export default function IPD({ activeRole }: { activeRole?: string }) {
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              className="h-7 w-7 text-rose-600 hover:bg-rose-50"
-                              title="Quick Discharge"
+                              className="h-7 w-7 text-rose-600 hover:bg-rose-100 hover:text-rose-800 rounded-lg transition-colors"
+                              title="Discharge Patient"
                               onClick={() => {
                                 setQuickDischargeBed(bed);
+                                const patId = patient?.id || bedPatId || '';
+                                const activeAdm = admissions.find(a => (String(a.patient_id) === String(patId) || String(a.patientId) === String(patId)) && a.status === 'Admitted');
+                                const dues = patId ? checkPatientDues(patId) : 0;
+                                setQuickDischargeForm({
+                                  dischargeType: 'Routine / Improved',
+                                  dischargeDate: new Date().toISOString().substring(0, 10),
+                                  dischargeTime: new Date().toTimeString().substring(0, 5),
+                                  followUpDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10),
+                                  conditionAtDischarge: 'Hemodynamically Stable, Afebrile, Ambulatory, Vitals within normal limits.',
+                                  dietaryAdvice: 'Soft, nutritious diet. Adequate hydration (2.5-3L/day). Avoid spicy & oily foods.',
+                                  emergencyWarningSigns: 'High fever (>101°F), severe abdominal pain, persistent vomiting, shortness of breath, or bleeding.',
+                                  dischargeBy: activeAdm?.attending_doctor || activeAdm?.doctor_name || 'Dr. Rajesh Sharma',
+                                  bypassDues: dues > 0,
+                                  notes: 'Patient responded well to inpatient care and is fit for planned discharge.'
+                                });
                                 setIsQuickDischargeOpen(true);
                               }}
                             >
@@ -1528,7 +1657,7 @@ export default function IPD({ activeRole }: { activeRole?: string }) {
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-7 w-7 text-slate-400 hover:text-slate-700"
+                          className="h-7 w-7 text-slate-500 hover:bg-slate-100 hover:text-slate-900 rounded-lg transition-colors"
                           title="Edit Bed"
                           onClick={() => {
                             setEditingBed(bed);
@@ -1536,7 +1665,7 @@ export default function IPD({ activeRole }: { activeRole?: string }) {
                               bedNumber: bed.bed_number || bed.number || '',
                               ward: bed.ward || 'General Ward',
                               bedType: bed.bed_type || bed.type || 'General',
-                              pricePerDay: bed.daily_rate || 500,
+                              pricePerDay: Number(bed.daily_rate) || 500,
                               status: bed.status || 'Available'
                             });
                             setIsEditBedOpen(true);
@@ -1553,33 +1682,37 @@ export default function IPD({ activeRole }: { activeRole?: string }) {
                     {isOccupied ? (
                       <div className="space-y-2 text-xs">
                         <div className="p-2.5 bg-blue-50/60 rounded-xl border border-blue-100">
-                          <p className="font-bold text-blue-950">{patient.name}</p>
-                          <p className="text-[10px] text-blue-700 font-mono">MRN: {patient.mrn} • {patient.age}y / {patient.gender}</p>
+                          <p className="font-bold text-blue-950">{patient?.name || 'Inpatient'}</p>
+                          <p className="text-[10px] text-blue-700 font-mono">MRN: {patient?.mrn || 'IPD-ACTIVE'} • {patient?.age || 'Adult'}y / {patient?.gender || 'Patient'}</p>
                         </div>
                         <div className="flex gap-1.5 flex-wrap">
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="h-7 text-[10px] font-bold border-teal-200 text-teal-800 bg-teal-50"
-                            onClick={() => {
-                              setSelectedPatient(patient);
-                              setIsChartOpen(true);
-                            }}
-                          >
-                            <FileText className="w-3 h-3 text-teal-600 mr-1" />
-                            Chart
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="h-7 text-[10px] font-bold border-indigo-200 text-indigo-800 bg-indigo-50"
-                            onClick={() => {
-                              printDailyVitalsAndAdvice(patient, `Bed ${bed.bed_number || bed.number}`);
-                            }}
-                          >
-                            <Printer className="w-3 h-3 text-indigo-600 mr-1" />
-                            Vitals Sheet
-                          </Button>
+                          {patient && (
+                            <>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="h-7 text-[10px] font-bold border-teal-200 text-teal-800 bg-teal-50 hover:bg-teal-100"
+                                onClick={() => {
+                                  setSelectedPatient(patient);
+                                  setIsChartOpen(true);
+                                }}
+                              >
+                                <FileText className="w-3 h-3 text-teal-600 mr-1" />
+                                Chart
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="h-7 text-[10px] font-bold border-indigo-200 text-indigo-800 bg-indigo-50 hover:bg-indigo-100"
+                                onClick={() => {
+                                  printDailyVitalsAndAdvice(patient, `Bed ${bed.bed_number || bed.number}`);
+                                }}
+                              >
+                                <Printer className="w-3 h-3 text-indigo-600 mr-1" />
+                                Vitals Sheet
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                     ) : (
@@ -2128,51 +2261,457 @@ export default function IPD({ activeRole }: { activeRole?: string }) {
         </DialogContent>
       </Dialog>
 
+      {/* Transfer Bed Modal */}
+      <Dialog open={isTransferOpen} onOpenChange={setIsTransferOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
+              <ArrowLeftRight className="w-5 h-5 text-amber-600" />
+              Intra-Hospital Bed Transfer
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Transfer inpatient to an available bed, step-down ward, or ICU.
+            </DialogDescription>
+          </DialogHeader>
+
+          {(() => {
+            const transferPat = patients.find(p => String(p.id) === String(transferData.patientId)) || MOCK_PATIENTS.find(p => String(p.id) === String(transferData.patientId));
+            const currentBed = beds.find(b => b.id === transferData.fromBedId);
+            const availableTargetBeds = beds.filter(b => b.status === 'Available' && b.id !== transferData.fromBedId);
+
+            return (
+              <div className="space-y-4 py-2 text-xs">
+                {/* Current Allocation Info */}
+                <div className="p-3 bg-amber-50/60 rounded-xl border border-amber-200">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-bold text-amber-950 text-sm">{transferPat?.name || 'Inpatient'}</p>
+                      <p className="text-[11px] text-amber-800 font-mono mt-0.5">
+                        MRN: {transferPat?.mrn || 'N/A'} • {transferPat?.age || 'Adult'}y / {transferPat?.gender || 'Patient'}
+                      </p>
+                    </div>
+                    <Badge className="bg-amber-100 text-amber-900 border-amber-300 text-[10px] font-bold">
+                      Current: Bed {currentBed?.bed_number || currentBed?.number || 'N/A'} ({currentBed?.ward || 'General'})
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Destination Bed Selection */}
+                <div className="space-y-1.5">
+                  <Label className="font-bold text-slate-700">Select Destination Bed *</Label>
+                  <Select value={transferData.toBedId} onValueChange={(val) => setTransferData({ ...transferData, toBedId: val })}>
+                    <SelectTrigger className="h-9 text-xs bg-white border-slate-300">
+                      <SelectValue placeholder="Choose available destination bed" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableTargetBeds.length === 0 ? (
+                        <SelectItem value="none" disabled>No available beds found</SelectItem>
+                      ) : (
+                        availableTargetBeds.map(b => (
+                          <SelectItem key={b.id} value={b.id}>
+                            Bed {b.bed_number || b.number} — {b.ward} ({b.bed_type || b.type || 'General'}) • ₹{b.daily_rate || 500}/day
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {availableTargetBeds.length === 0 && (
+                    <p className="text-[10px] text-rose-600 font-medium">All beds are currently occupied or under maintenance.</p>
+                  )}
+                </div>
+
+                {/* Reason for Transfer with quick chips */}
+                <div className="space-y-1.5">
+                  <Label className="font-bold text-slate-700">Reason for Transfer</Label>
+                  <div className="flex flex-wrap gap-1.5 mb-1.5">
+                    {['Clinical Step-Down', 'ICU Escalation', 'Post-Op Recovery', 'Patient Request', 'Isolation Need'].map(preset => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setTransferData({ ...transferData, reason: preset })}
+                        className={`text-[10px] px-2 py-0.5 rounded-md border font-medium transition-colors ${
+                          transferData.reason === preset 
+                            ? 'bg-amber-500 text-white border-amber-600' 
+                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                  <Input 
+                    value={transferData.reason} 
+                    onChange={(e) => setTransferData({ ...transferData, reason: e.target.value })} 
+                    className="h-8 text-xs bg-white" 
+                    placeholder="Enter reason for bed shifting"
+                  />
+                </div>
+
+                {/* Staff in-charge */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="font-bold text-slate-700">Authorizing Doctor</Label>
+                    <Input 
+                      placeholder="e.g. Dr. Ramesh Mehta" 
+                      value={transferData.transferredBy} 
+                      onChange={(e) => setTransferData({ ...transferData, transferredBy: e.target.value })} 
+                      className="h-8 text-xs bg-white" 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="font-bold text-slate-700">Nurse In-Charge</Label>
+                    <Input 
+                      placeholder="e.g. Staff Nurse Priya S." 
+                      value={transferData.nurseInCharge} 
+                      onChange={(e) => setTransferData({ ...transferData, nurseInCharge: e.target.value })} 
+                      className="h-8 text-xs bg-white" 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="font-bold text-slate-700">Special Clinical Requirements</Label>
+                  <Input 
+                    placeholder="e.g. Oxygen support, Cardiac monitor, Wheelchair assist" 
+                    value={transferData.clinicalRequirements} 
+                    onChange={(e) => setTransferData({ ...transferData, clinicalRequirements: e.target.value })} 
+                    className="h-8 text-xs bg-white" 
+                  />
+                </div>
+              </div>
+            );
+          })()}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsTransferOpen(false)}>Cancel</Button>
+            <Button 
+              className="bg-amber-600 hover:bg-amber-700 text-white font-bold" 
+              onClick={handleTransfer}
+              disabled={!transferData.toBedId}
+            >
+              <ArrowLeftRight className="w-3.5 h-3.5 mr-1.5" />
+              Transfer Patient
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quick Discharge Modal */}
+      <Dialog open={isQuickDischargeOpen} onOpenChange={setIsQuickDischargeOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
+              <LogOut className="w-5 h-5 text-rose-600" />
+              Inpatient Discharge & Bed Clearance
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Finalize patient clinical discharge, generate summary notes, and release bed allocation.
+            </DialogDescription>
+          </DialogHeader>
+
+          {(() => {
+            const bedPatId = quickDischargeBed?.patient_id || quickDischargeBed?.patientId;
+            const patient = bedPatId 
+              ? (patients.find(p => String(p.id) === String(bedPatId)) || MOCK_PATIENTS.find(p => String(p.id) === String(bedPatId)))
+              : null;
+            const activeAdm = patient ? admissions.find(a => (String(a.patient_id) === String(patient.id) || String(a.patientId) === String(patient.id)) && a.status === 'Admitted') : null;
+            const dues = patient ? checkPatientDues(patient.id) : 0;
+
+            return (
+              <div className="space-y-4 py-2 text-xs">
+                {/* Patient Summary Header */}
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                    <div>
+                      <p className="font-bold text-slate-900 text-sm">{patient?.name || 'Inpatient'}</p>
+                      <p className="text-[11px] text-slate-600 font-mono mt-0.5">
+                        MRN: {patient?.mrn || 'N/A'} • {patient?.age || 'Adult'}y / {patient?.gender || 'Patient'} • Phone: {patient?.phone || 'N/A'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-blue-50 text-blue-800 border-blue-200 text-[10px] font-bold">
+                        Bed {quickDischargeBed?.bed_number || quickDischargeBed?.number} ({quickDischargeBed?.ward})
+                      </Badge>
+                      {activeAdm?.admission_date && (
+                        <span className="text-[10px] text-slate-500">Adm: {formatDate(activeAdm.admission_date)}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Financial Clearance Check */}
+                <div className={`p-3 rounded-xl border flex items-center justify-between ${
+                  dues <= 0 ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950' : 'bg-amber-50/70 border-amber-200 text-amber-950'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    {dues <= 0 ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    )}
+                    <div>
+                      <p className="font-bold text-xs">
+                        {dues <= 0 ? 'Financial Status: Clear (No Pending Invoices)' : `Pending Dues: ₹${dues.toLocaleString('en-IN')}`}
+                      </p>
+                      <p className="text-[10px] text-slate-500">
+                        {dues <= 0 ? 'Patient billing is fully settled.' : 'Discharge can proceed with managerial override or post-discharge clearance.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Form fields */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="font-bold text-slate-700">Discharge Category *</Label>
+                    <Select 
+                      value={quickDischargeForm.dischargeType} 
+                      onValueChange={(val) => setQuickDischargeForm({ ...quickDischargeForm, dischargeType: val })}
+                    >
+                      <SelectTrigger className="h-8 text-xs bg-white border-slate-300">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Routine / Improved">Routine / Improved</SelectItem>
+                        <SelectItem value="LAMA (Left Against Medical Advice)">LAMA (Left Against Medical Advice)</SelectItem>
+                        <SelectItem value="Discharged on Request (DOR)">Discharged on Request (DOR)</SelectItem>
+                        <SelectItem value="Referred / Higher Center">Referred / Higher Center</SelectItem>
+                        <SelectItem value="Deceased">Deceased</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="font-bold text-slate-700">Attending Consultant</Label>
+                    <Input 
+                      value={quickDischargeForm.dischargeBy} 
+                      onChange={(e) => setQuickDischargeForm({ ...quickDischargeForm, dischargeBy: e.target.value })} 
+                      className="h-8 text-xs bg-white" 
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="font-bold text-slate-700">Discharge Date & Time</Label>
+                    <div className="flex gap-2">
+                      <Input 
+                        type="date" 
+                        value={quickDischargeForm.dischargeDate} 
+                        onChange={(e) => setQuickDischargeForm({ ...quickDischargeForm, dischargeDate: e.target.value })} 
+                        className="h-8 text-xs bg-white" 
+                      />
+                      <Input 
+                        type="time" 
+                        value={quickDischargeForm.dischargeTime} 
+                        onChange={(e) => setQuickDischargeForm({ ...quickDischargeForm, dischargeTime: e.target.value })} 
+                        className="h-8 text-xs bg-white w-24" 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="font-bold text-slate-700">Follow-Up Date</Label>
+                    <Input 
+                      type="date" 
+                      value={quickDischargeForm.followUpDate} 
+                      onChange={(e) => setQuickDischargeForm({ ...quickDischargeForm, followUpDate: e.target.value })} 
+                      className="h-8 text-xs bg-white" 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="font-bold text-slate-700">Condition at Discharge</Label>
+                  <Input 
+                    value={quickDischargeForm.conditionAtDischarge} 
+                    onChange={(e) => setQuickDischargeForm({ ...quickDischargeForm, conditionAtDischarge: e.target.value })} 
+                    className="h-8 text-xs bg-white" 
+                    placeholder="e.g. Hemodynamically stable, afebrile, ambulatory"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="font-bold text-slate-700">Dietary & Activity Advice</Label>
+                    <textarea 
+                      value={quickDischargeForm.dietaryAdvice} 
+                      onChange={(e) => setQuickDischargeForm({ ...quickDischargeForm, dietaryAdvice: e.target.value })} 
+                      className="w-full border border-slate-300 rounded-lg p-2 text-xs min-h-[50px] bg-white resize-none" 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="font-bold text-slate-700">Emergency Warning Signs</Label>
+                    <textarea 
+                      value={quickDischargeForm.emergencyWarningSigns} 
+                      onChange={(e) => setQuickDischargeForm({ ...quickDischargeForm, emergencyWarningSigns: e.target.value })} 
+                      className="w-full border border-slate-300 rounded-lg p-2 text-xs min-h-[50px] bg-white resize-none" 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="font-bold text-slate-700">Doctor's Clinical Notes / Instructions</Label>
+                  <textarea 
+                    value={quickDischargeForm.notes} 
+                    onChange={(e) => setQuickDischargeForm({ ...quickDischargeForm, notes: e.target.value })} 
+                    placeholder="Patient recovered satisfactorily and is fit for planned discharge..."
+                    className="w-full border border-slate-300 rounded-lg p-2 text-xs min-h-[50px] bg-white resize-none" 
+                  />
+                </div>
+              </div>
+            );
+          })()}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsQuickDischargeOpen(false)}>Cancel</Button>
+            <Button 
+              variant="outline" 
+              className="border-slate-300 text-slate-700 hover:bg-slate-100 font-bold"
+              onClick={() => handleExecuteQuickDischarge(false)}
+            >
+              Direct Free Bed
+            </Button>
+            <Button 
+              className="bg-teal-600 hover:bg-teal-700 text-white font-bold"
+              onClick={() => handleExecuteQuickDischarge(true)}
+            >
+              <LogOut className="w-3.5 h-3.5 mr-1.5" />
+              Discharge & Generate Summary
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Edit Bed Modal */}
       <Dialog open={isEditBedOpen} onOpenChange={setIsEditBedOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit Bed Configuration</DialogTitle>
-            <DialogDescription>Modify bed number, assigned ward, and rate.</DialogDescription>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
+              <Edit className="w-5 h-5 text-teal-600" />
+              Edit Bed Configuration
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Modify bed number, assigned ward, category, and daily tariff rate.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2 text-xs">
             <div className="space-y-1">
-              <Label>Bed Number</Label>
-              <Input value={editBedForm.bedNumber} onChange={(e) => setEditBedForm({...editBedForm, bedNumber: e.target.value})} className="h-8 text-xs" />
+              <Label className="font-bold text-slate-700">Bed Number / Identifier</Label>
+              <Input 
+                value={editBedForm.bedNumber} 
+                onChange={(e) => setEditBedForm({...editBedForm, bedNumber: e.target.value})} 
+                className="h-8 text-xs bg-white" 
+                placeholder="e.g. 101"
+              />
             </div>
             <div className="space-y-1">
-              <Label>Ward</Label>
-              <Input value={editBedForm.ward} onChange={(e) => setEditBedForm({...editBedForm, ward: e.target.value})} className="h-8 text-xs" />
+              <Label className="font-bold text-slate-700">Ward / Department</Label>
+              <Select 
+                value={editBedForm.ward} 
+                onValueChange={(v) => setEditBedForm({...editBedForm, ward: v})}
+              >
+                <SelectTrigger className="h-8 text-xs bg-white">
+                  <SelectValue placeholder="Select ward" />
+                </SelectTrigger>
+                <SelectContent>
+                  {hospitalWards.map(w => (
+                    <SelectItem key={w} value={w}>{w}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <Label>Bed Type</Label>
-                <Input value={editBedForm.bedType} onChange={(e) => setEditBedForm({...editBedForm, bedType: e.target.value})} className="h-8 text-xs" />
+                <Label className="font-bold text-slate-700">Bed Type</Label>
+                <Select 
+                  value={editBedForm.bedType} 
+                  onValueChange={(v) => setEditBedForm({...editBedForm, bedType: v})}
+                >
+                  <SelectTrigger className="h-8 text-xs bg-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="General">General</SelectItem>
+                    <SelectItem value="ICU">ICU</SelectItem>
+                    <SelectItem value="HDU">HDU</SelectItem>
+                    <SelectItem value="Maternity">Maternity</SelectItem>
+                    <SelectItem value="Semi-Private">Semi-Private</SelectItem>
+                    <SelectItem value="Private">Private</SelectItem>
+                    <SelectItem value="Deluxe">Deluxe</SelectItem>
+                    <SelectItem value="Day Care">Day Care</SelectItem>
+                    <SelectItem value="Emergency">Emergency</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
-                <Label>Daily Rate (₹)</Label>
-                <Input type="number" value={editBedForm.pricePerDay} onChange={(e) => setEditBedForm({...editBedForm, pricePerDay: parseInt(e.target.value) || 0})} className="h-8 text-xs" />
+                <Label className="font-bold text-slate-700">Daily Rate (₹)</Label>
+                <Input 
+                  type="number" 
+                  value={editBedForm.pricePerDay} 
+                  onChange={(e) => setEditBedForm({...editBedForm, pricePerDay: parseInt(e.target.value) || 0})} 
+                  className="h-8 text-xs bg-white" 
+                />
               </div>
             </div>
+            <div className="space-y-1">
+              <Label className="font-bold text-slate-700">Bed Status</Label>
+              <Select 
+                value={editBedForm.status} 
+                onValueChange={(v) => setEditBedForm({...editBedForm, status: v})}
+              >
+                <SelectTrigger className="h-8 text-xs bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Available">Available</SelectItem>
+                  <SelectItem value="Occupied">Occupied</SelectItem>
+                  <SelectItem value="Maintenance">Maintenance</SelectItem>
+                  <SelectItem value="Cleaning">Cleaning</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {editingBed?.status === 'Occupied' && (
+              <div className="p-2 bg-blue-50 border border-blue-200 rounded-lg text-[11px] text-blue-900">
+                Note: This bed is currently occupied. Changing status to Available here will release the bed.
+              </div>
+            )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditBedOpen(false)}>Cancel</Button>
-            <Button className="bg-teal-600 hover:bg-teal-700 text-white font-bold" onClick={async () => {
-              if (!editingBed) return;
-              await supabaseService.updateBed(editingBed.id, {
-                bed_number: editBedForm.bedNumber,
-                number: editBedForm.bedNumber,
-                ward: editBedForm.ward,
-                bed_type: editBedForm.bedType,
-                type: editBedForm.bedType,
-                daily_rate: editBedForm.pricePerDay
-              });
-              toast.success('Bed updated successfully');
-              setIsEditBedOpen(false);
-              fetchData();
-            }}>
-              Save Changes
-            </Button>
+          <DialogFooter className="flex justify-between items-center w-full">
+            {editingBed && editingBed.status !== 'Occupied' && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-rose-600 hover:bg-rose-50 text-xs mr-auto"
+                onClick={() => handleDeleteBed(editingBed.id)}
+              >
+                <Trash2 className="w-3.5 h-3.5 mr-1" />
+                Delete Bed
+              </Button>
+            )}
+            <div className="flex gap-2 ml-auto">
+              <Button variant="outline" onClick={() => setIsEditBedOpen(false)}>Cancel</Button>
+              <Button className="bg-teal-600 hover:bg-teal-700 text-white font-bold" onClick={async () => {
+                if (!editingBed) return;
+                const updatedBedPayload = {
+                  ...editingBed,
+                  bed_number: editBedForm.bedNumber,
+                  number: editBedForm.bedNumber,
+                  ward: editBedForm.ward,
+                  bed_type: editBedForm.bedType,
+                  type: editBedForm.bedType,
+                  daily_rate: editBedForm.pricePerDay,
+                  status: editBedForm.status,
+                  patient_id: editBedForm.status === 'Available' ? null : editingBed.patient_id,
+                  patientId: editBedForm.status === 'Available' ? null : editingBed.patientId
+                };
+
+                setBeds(prev => prev.map(b => b.id === editingBed.id ? updatedBedPayload : b));
+                await supabaseService.updateBed(editingBed.id, updatedBedPayload);
+                toast.success(`Bed ${editBedForm.bedNumber} updated successfully`);
+                setIsEditBedOpen(false);
+              }}>
+                Save Changes
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
